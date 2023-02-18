@@ -54,8 +54,12 @@ if you have any questions, please do not hesitate to contact me:
 Last update: **September 12, 2022**
 
 ## 利用深度学习生成模糊测试的输入
+
 主要参考文献 ：
 Learn&Fuzz: Machine Learning for Input Fuzzing
+
 Format-aware Learn&Fuzz: Deep Test Data Generation for Efficient Fuzzing
+
 主要使用此项目中的simplefuzz算法
+
 在此向这两篇文章的作者表示感谢
