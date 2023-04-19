@@ -1,8 +1,11 @@
 """
-PDF OBJ 9
-- New in version 9 data fuzz
--- Create test data for data fuzzing (i.e p_t = 0.50) and prefix update.
--- Date: 1397-04-17
+PDF OBJ 8laf4
+- New in laf4
+-- SampleFuzz Algorithm add.
+-- creation date: 13970414
+- New in laf3
+-- Implement learn and fuzz model and sample fuzz algorithm (version 2)
+-- For generate objects
 - New in version 8
 -- Fuzzing back to generate_and_fuzz method.
 -- Perplexity and cross entropy add to metrics list.
@@ -29,7 +32,7 @@ PDF OBJ 9
 
 from __future__ import print_function
 
-__version__ = '0.9.1'
+__version__ = '0.8.1'
 __author__ = 'Morteza'
 
 import sys
@@ -41,6 +44,8 @@ import numpy as np
 from keras import backend as K
 from keras.models import load_model
 from keras.optimizers import RMSprop, Adam
+#from keras.utils.vis_utils import plot_model
+#from tensorflow.keras.optimizers import RMSprop,Adam
 from keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard, CSVLogger, LambdaCallback
 from keras.utils import plot_model
 
@@ -115,12 +120,12 @@ class FileFormatFuzzer(object):
 
     def define_model(self, input_dim, output_dim):
         """
-        Build the model: a single LSTM layer # We need to deep it # now is deep :)
+        Build the model: a single LSTM layer # we need to deep it # now is deep :)
         :param input_dim:
         :param output_dim:
         :return:
         """
-        model, model_name = deep_models.model_7(input_dim, output_dim)
+        model, model_name = deep_models.model7_laf(input_dim, output_dim)
         return model, model_name
 
     def load_dataset(self):
@@ -150,16 +155,20 @@ class FileFormatFuzzer(object):
         self.indices_char = dict((i, c) for i, c in enumerate(self.chars))
         # print(indices_char)
 
+    # Generate samples from dataset base on learn and fuzz formula
     def generate_samples(self, text):
         """Cut the text in semi-redundant sequences of maxlen characters"""
         sentences = []  # List of all sentence as input
         next_chars = []  # List of all next chars as labels
-        for i in range(0, len(text) - self.maxlen, self.step):  # arg2 why this?
-            sentences.append(text[i: i + self.maxlen])
+        for i in range(0, (round(len(text) / self.maxlen)) - self.step, self.step):  # arg2 why this?
+            # sentences.append(text[i: i + self.maxlen])
+            sentences.append(text[i * self.maxlen: (i + self.step) * self.maxlen])
             # print(sentences)
-            next_chars.append(text[i + self.maxlen])
+            # print((i + self.step) * self.maxlen)
+            next_chars.append(text[(i + self.step) * self.maxlen])
             # print(next_chars)
         print('Number of semi sequences or samples:', len(sentences))
+        # input()
         return sentences, next_chars
 
     def data_generator(self, sentences, next_chars):
@@ -244,17 +253,9 @@ class FileFormatFuzzer(object):
         dt = datetime.datetime.now().strftime('_date_%Y-%m-%d_%H-%M-%S_')
 
         print('Generate training samples ...')
-        sentences_training, next_chars_training = self.generate_samples(self.text_training)
+        sentences_training, next_chars_training = self.generate_samples(self.text_training + self.text_test)
         print('Generate validations samples ...')
         sentences_validation, next_chars_validation = self.generate_samples(self.text_validation)
-
-        # print(sentences_training[0] + '\t' + next_chars_training[0])
-        # print(sentences_training[1] + '\t' + next_chars_training[1])
-        # print(sentences_training[2] + '\t' + next_chars_training[2])
-        # print(sentences_training[3] + '\t' + next_chars_training[3])
-        # print(sentences_training[4] + '\t' + next_chars_training[4])
-        #
-        # input()
 
         print('Build and compile model ...')
         model = None
@@ -265,7 +266,7 @@ class FileFormatFuzzer(object):
             model = trained_model
             model_name = trained_model_name
         optimizer = RMSprop(lr=0.01)  # [0.001, 0.01, 0.02, 0.05, 0.1]
-        optimizer = Adam(lr=0.001)  # Reduce from 0.001 to 0.0001 for model_10
+        optimizer = Adam(lr=0.0001)  # Reduce from 0.001 to 0.0001 for model_10
         model.compile(optimizer=optimizer,
                       loss='categorical_crossentropy',
                       # metrics=['accuracy']
@@ -334,7 +335,7 @@ class FileFormatFuzzer(object):
                                                                 on_train_end=None
                                                                 )
 
-        if learning_config['dataset_size'] == 'very_small':  # very_small
+        if learning_config['dataset_size'] == 'small':  # very_small
             print('Start training on small dataset ...')
             x, y = self.data_generator_in_memory(sentences_training, next_chars_training)
             model.fit(x, y,
@@ -411,18 +412,18 @@ class FileFormatFuzzer(object):
         # Fuzzing hyper-parameters
 
         diversities = [i*0.10 for i in range(1, 20, 2)]
-        diversities = [0.2, 0.5, 1.0, 1.2, 1.5, 1.8]
-        diversities = [1.0]  # for sou and for mou
-        # diversities = [1.5]
+        # diversities = [0.2, 0.5, 1.0, 1.2, 1.5, 1.8]
+        # diversities = [0.5, 1.0, 1.5]  # for sou and for mou
+        diversities = [1.0]
 
-        generated_obj_total = 5  # [5, 10, 100, 1000, 3000] {1000-1100 for sou and 3000-3100 for muo}
-        generated_obj_with_same_prefix = 1  # [1, 5, 10, 20, 40] {10 for sou and 20 for mou}
-        generated_obj_max_allowed_len = random.randint(450, 550)  # Choose max allowed len for object randomly
-        exclude_from_fuzzing_set = {'s', 't', 'r', 'e', 'a', 'm', 'e', 'n', 'd', 'o', 'b', 'j'}  # set(['s', 't', 'r', 'e', 'a', 'm'])
+        generated_obj_total = 100  # [5, 10, 100, 1000, 3000, 10000] {1000-1100 for sou and 3000-3100 for muo, 10000 for fuzz testing}
+        generated_obj_with_same_prefix = 10  # [1, 5, 10, 20, 40] {10 for sou and 20 for mou}
+        generated_obj_max_allowed_len = 400  # Choose max allowed len for object randomly
+        exclude_from_fuzzing_set = {'s', 't', 'r', 'e', 'a', 'm'}  # set(['s', 't', 'r', 'e', 'a', 'm'])
 
         # Learn and fuzz paper hyper-parameters
-        t_fuzz = 0.90  # For comparision with p_fuzz where p_fuzz is a random number (if p_fuzz > t_fuzz)
-        p_t = 0.40  # 0.9 and more for format fuzzing; 0.4 and less than 0.4 for data fuzzing. Now data fuzzing.
+        t_fuzz = 0.9  # For comparision with p_fuzz where p_fuzz is a random number (if p_fuzz > t_fuzz)
+        p_t = 0.9  # 0.9 and more for format fuzzing; 0.5 and less than 0.5 for data fuzzing. Now format fuzzing.
 
         # End of fuzzing hyper-parameters
 
@@ -438,6 +439,7 @@ class FileFormatFuzzer(object):
             for q in range(round(generated_obj_total/generated_obj_with_same_prefix)):
 
                 obj_index = random.randint(0, len(testset_object_gt_maxlen_list) - 1)
+                # obj_index = 0
                 generated_obj_counter = 0
                 generated_obj_len = 0
                 generated = ''
@@ -451,8 +453,8 @@ class FileFormatFuzzer(object):
                 # prob_vals = '1 ' * self.maxlen
                 # learnt_grammar = obj_prefix
 
-                # print('--- Generating ts_text with seed:\n "' + obj_prefix + '"')
-                # sys.stdout.write(generated)
+                print('--- Generating ts_text with seed:\n "' + obj_prefix + '"')
+                sys.stdout.write(generated)
 
                 if generated.endswith('endobj'):
                     generated_obj_counter += 1
@@ -461,28 +463,47 @@ class FileFormatFuzzer(object):
                     stop_condition = True
 
                 while not stop_condition:
-                    x_pred = np.zeros((1, self.maxlen, len(self.chars)))
-                    for t, char in enumerate(obj_prefix):
-                        x_pred[0, t, self.char_indices[char]] = 1.
+                    if(generated.endswith(' ')):
+                        x_pred = np.zeros((1, self.maxlen, len(self.chars)))
+                        for t, char in enumerate(obj_prefix):
+                            x_pred[0, t, self.char_indices[char]] = 1.
 
-                    preds = model.predict(x_pred, verbose=0)[0]
-                    next_index, prob, preds2 = self.sample(preds, diversity)
-                    next_char = self.indices_char[next_index]
-                    next_char_for_prefix = next_char
+                        preds = model.predict(x_pred, verbose=0)[0]
+                        next_index, prob, preds2 = self.sample(preds, diversity)
+                        next_char = self.indices_char[next_index]
+                        # next_char_for_prefix = next_char
 
-                    ###### Fuzzing section we don't need it yet!
-                    if next_char not in exclude_from_fuzzing_set:
+                        ###### Fuzzing section we don't need it yet!
+
                         p_fuzz = random.random()
-                        if p_fuzz > t_fuzz and preds2[next_index] < p_t:
+                        if p_fuzz > t_fuzz and preds2[next_index] > p_t:
                             next_index = np.argmin(preds2)
-                            print('((Fuzz!))')
-                        next_char = self.indices_char[next_index]  # next_char updated.
-                    ###### End of fuzzing section
+                            # print('((Fuzz!))')
+                        next_char = self.indices_char[next_index]
+                        next_char_for_prefix = next_char
 
-                    obj_prefix = obj_prefix[1:] + next_char #  next_char_for_prefix
-                    generated += next_char  # next_char_for_prefix  #
-                    generated_obj_len += 1
+                        ###### End of fuzzing section
 
+                        obj_prefix = obj_prefix[1:] + next_char_for_prefix
+                        generated += next_char_for_prefix  # next_char
+                        sys.stdout.write(generated)
+                        generated_obj_len += 1
+                    else:
+                        # print("生成中间字符")
+                        x_pred = np.zeros((1, self.maxlen, len(self.chars)))
+                        for t, char in enumerate(obj_prefix):
+                            x_pred[0, t, self.char_indices[char]] = 1.
+                        preds = model.predict(x_pred, verbose=0)[0]
+                        next_index, prob, preds2 = self.sample(preds, diversity)
+                        next_char = self.indices_char[next_index]
+                        next_char_for_prefix = next_char
+
+                        ###### End of fuzzing section
+
+                        obj_prefix = obj_prefix[1:] + next_char_for_prefix
+                        generated += next_char_for_prefix  # next_char
+                        sys.stdout.write(generated)
+                        generated_obj_len += 1
                     if generated.endswith('endobj'):
                         generated_obj_counter += 1
                         generated_obj_len = 0
@@ -505,7 +526,8 @@ class FileFormatFuzzer(object):
 
                         # Instead of modify obj_prefix we can reset prefix if we found that 'endobj' dose not generate
                         # automatically. It seems to be better option, so we do this:
-                        obj_index = random.randint(0, len(testset_object_gt_maxlen_list) - 1)
+                        # obj_index = random.randint(0, len(testset_object_gt_maxlen_list) - 1)
+                        obj_index = 0
                         obj_prefix = str(testset_object_gt_maxlen_list[obj_index])[0: self.maxlen]
                         generated += obj_prefix
                         endobj_attach_manually = False
@@ -513,6 +535,7 @@ class FileFormatFuzzer(object):
                     # sys.stdout.write(next_char)
                     # sys.stdout.flush()
                     # print()
+                sys.stdout.write(generated)
                 generated_total += generated + '\n'
             # save generated_result to file inside program
 
@@ -525,9 +548,11 @@ class FileFormatFuzzer(object):
             # preprocess.save_to_file(dir_name + file_name + 'probabilities.txt', prob_vals)
             # preprocess.save_to_file(dir_name + file_name + 'learntgrammar.txt',learnt_grammar)
             print('Diversity %s save to file successfully.' % diversity)
-
+        print("-----")
+        print(generated_total)
+        print("-----")
         print('End of generation method.')
-        # print('Starting new epoch ...')
+        print('Starting new epoch ...')
         return generated_total
 
     # Lower temperature will cause the model to make more likely,
@@ -571,17 +596,16 @@ class FileFormatFuzzer(object):
         plot_model(model, to_file='./modelpic/date_' + dt + 'epochs_' + str(epochs) + '.png',
                    show_shapes=True, show_layer_names=True)
 
-    def load_model_and_generate(self, model_name='model_7', epochs=38):
+    def load_model_and_generate(self, model_name='model7_laf', epochs=50):
         dt = datetime.datetime.now().strftime('_date_%Y-%m-%d_%H-%M-%S')
         dir_name = './generated_results/pdfs/' + model_name + dt + 'epochs_' + str(epochs) + '/'
         if not os.path.exists(dir_name):
             os.makedirs(dir_name)
 
         model = load_model('./model_checkpoint/best_models/'
-                           'model_7_date_2018-05-14_21-44-21_epoch_38_val_loss_0.3300.h5',
+                           'model7_laf_date_2018-06-19_12-23-39_epoch_50_val_loss_0.7242.h5',
                            compile=False)
-        optimizer = Adam(lr=0.001)  # Reduce from 0.001 to 0.0001 just for model_10
-
+        optimizer = Adam(lr=0.0001)  # Reduce from 0.001 to 0.0001 for model_10
         model.compile(optimizer=optimizer,
                       loss='categorical_crossentropy',
                       # metrics=['accuracy']
@@ -590,7 +614,7 @@ class FileFormatFuzzer(object):
         seq = self.generate_and_fuzz_new_samples(model=model,
                                       model_name=model_name,
                                       epochs=epochs,
-                                      current_epoch=38,
+                                      current_epoch=50,
                                       dir_name=dir_name)
 
         list_of_obj = preprocess.get_list_of_object(seq=seq, is_sort=False)
@@ -608,7 +632,7 @@ class FileFormatFuzzer(object):
 def main(argv):
     """ The main function to call train() method"""
     epochs = 100
-    fff = FileFormatFuzzer(maxlen=50, step=3, batch_size=256)
+    fff = FileFormatFuzzer(maxlen=50, step=1, batch_size=128)
     # trained_model_dir = './model_checkpoint/best_models/'
     # trained_model_file_name = 'model_7_date_2018-05-14_21-44-21_epoch_65_val_loss_0.3335.h5'
     # trained_model_path = trained_model_dir + trained_model_file_name
@@ -617,14 +641,14 @@ def main(argv):
     # Train deep model from first or continue training for previous trained model.
     # Trained model pass as argument.
     # fff.train(epochs=epochs,
-              # trained_model=trained_model,
-              # trained_model_name='model_7-1'
-              # )
+    #           trained_model=trained_model,
+    #           trained_model_name='model_7-1'
+    #           )
     # fff.get_model_summary()
     list_of_obj = fff.load_model_and_generate()
     print('Len list_of_obj', len(list_of_obj))
-    dt = datetime.datetime.now().strftime('_%Y_%m_%d__%H_%M_%S_')
-    print('Generation complete successfully', dt)
+
+    print('Training complete successfully on %s epochs' % epochs)
 
 
 if __name__ == "__main__":

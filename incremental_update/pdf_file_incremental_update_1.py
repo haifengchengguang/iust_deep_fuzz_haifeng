@@ -71,7 +71,7 @@ def attach_new_object():
     # print(bytes(str(startxref_offset), 'ascii'))
 
     # load the pdf object form file
-    seq = poc.load_from_file(host_directory + 'gen_objs_20180221_142612_epochs10_div1.5_step1.txt')
+    seq = poc.load_from_file(host_directory + 'model_7_diversity_1.0_epochs_38_step_3.txt')
     obj_list = poc.get_list_of_object(seq)
     random_object_index = random.randint(0, len(obj_list)-1)
     obj = obj_list[random_object_index]
@@ -90,10 +90,11 @@ def attach_new_object():
                      bytes(str(startxref_offset_new), 'ascii') + b'\n%%EOF\n'
 
     print('attach_content\n', attach_content)
-
+    print("start write")
     new_pdf_file = data + attach_content
-    with open(host_directory + host_names[0] + 'iu_auto7.pdf', 'bw') as f:
+    with open(host_directory + host_names[0] + 'mymodel7.pdf', 'bw') as f:
         f.write(new_pdf_file)
+    print("end write")
 
 
 def main(argv):

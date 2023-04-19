@@ -44,6 +44,8 @@ import numpy as np
 from keras import backend as K
 from keras.models import load_model
 from keras.optimizers import RMSprop, Adam
+#from keras.utils.vis_utils import plot_model
+#from tensorflow.keras.optimizers import RMSprop,Adam
 from keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard, CSVLogger, LambdaCallback
 from keras.utils import plot_model
 
@@ -414,8 +416,8 @@ class FileFormatFuzzer(object):
         # diversities = [0.5, 1.0, 1.5]  # for sou and for mou
         diversities = [1.0]
 
-        generated_obj_total = 10000  # [5, 10, 100, 1000, 3000, 10000] {1000-1100 for sou and 3000-3100 for muo, 10000 for fuzz testing}
-        generated_obj_with_same_prefix = 1  # [1, 5, 10, 20, 40] {10 for sou and 20 for mou}
+        generated_obj_total = 100  # [5, 10, 100, 1000, 3000, 10000] {1000-1100 for sou and 3000-3100 for muo, 10000 for fuzz testing}
+        generated_obj_with_same_prefix = 10  # [1, 5, 10, 20, 40] {10 for sou and 20 for mou}
         generated_obj_max_allowed_len = 400  # Choose max allowed len for object randomly
         exclude_from_fuzzing_set = {'s', 't', 'r', 'e', 'a', 'm'}  # set(['s', 't', 'r', 'e', 'a', 'm'])
 
@@ -451,8 +453,8 @@ class FileFormatFuzzer(object):
                 # prob_vals = '1 ' * self.maxlen
                 # learnt_grammar = obj_prefix
 
-                # print('--- Generating ts_text with seed:\n "' + obj_prefix + '"')
-                # sys.stdout.write(generated)
+                print('--- Generating ts_text with seed:\n "' + obj_prefix + '"')
+                sys.stdout.write(generated)
 
                 if generated.endswith('endobj'):
                     generated_obj_counter += 1
@@ -461,6 +463,7 @@ class FileFormatFuzzer(object):
                     stop_condition = True
 
                 while not stop_condition:
+                    #if(generated.endswith(' ')):
                     x_pred = np.zeros((1, self.maxlen, len(self.chars)))
                     for t, char in enumerate(obj_prefix):
                         x_pred[0, t, self.char_indices[char]] = 1.
@@ -475,7 +478,7 @@ class FileFormatFuzzer(object):
                     p_fuzz = random.random()
                     if p_fuzz > t_fuzz and preds2[next_index] > p_t:
                         next_index = np.argmin(preds2)
-                        print('((Fuzz!))')
+                        #print('((Fuzz!))')
                     next_char = self.indices_char[next_index]
                     next_char_for_prefix = next_char
 
@@ -483,6 +486,7 @@ class FileFormatFuzzer(object):
 
                     obj_prefix = obj_prefix[1:] + next_char_for_prefix
                     generated += next_char_for_prefix  # next_char
+                    #sys.stdout.write(generated)
                     generated_obj_len += 1
 
                     if generated.endswith('endobj'):
@@ -516,6 +520,7 @@ class FileFormatFuzzer(object):
                     # sys.stdout.write(next_char)
                     # sys.stdout.flush()
                     # print()
+                sys.stdout.write(generated)
                 generated_total += generated + '\n'
             # save generated_result to file inside program
 
@@ -528,7 +533,9 @@ class FileFormatFuzzer(object):
             # preprocess.save_to_file(dir_name + file_name + 'probabilities.txt', prob_vals)
             # preprocess.save_to_file(dir_name + file_name + 'learntgrammar.txt',learnt_grammar)
             print('Diversity %s save to file successfully.' % diversity)
-
+        print("-----")
+        print(generated_total)
+        print("-----")
         print('End of generation method.')
         print('Starting new epoch ...')
         return generated_total

@@ -43,6 +43,7 @@ from keras.models import load_model
 from keras.optimizers import RMSprop, Adam
 from keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard, CSVLogger, LambdaCallback
 from keras.utils import plot_model
+from tqdm import tqdm
 
 import pdf_object_preprocess as preprocess
 from config import learning_config
@@ -415,8 +416,8 @@ class FileFormatFuzzer(object):
         diversities = [1.0]  # for sou and for mou
         # diversities = [1.5]
 
-        generated_obj_total = 30200  # [5, 10, 100, 1000, 3000] {1000-1100 for sou and 3000-3100 for muo}
-        generated_obj_with_same_prefix = 20  # [1, 5, 10, 20, 40] {10 for sou and 20 for mou}
+        generated_obj_total = 5  # [5, 10, 100, 1000, 3000] {1000-1100 for sou and 3000-3100 for muo}
+        generated_obj_with_same_prefix = 1  # [1, 5, 10, 20, 40] {10 for sou and 20 for mou}
         generated_obj_max_allowed_len = random.randint(450, 550)  # Choose max allowed len for object randomly
         exclude_from_fuzzing_set = {'s', 't', 'r', 'e', 'a', 'm', 'e', 'n', 'd', 'o', 'b', 'j'}  # set(['s', 't', 'r', 'e', 'a', 'm'])
 
@@ -434,9 +435,13 @@ class FileFormatFuzzer(object):
         print('len filtered test-set: ', len(testset_object_gt_maxlen_list))
         generated_total = ''
         for diversity in diversities:
+            print("diversity="+str(diversity))
             generated_total = ''
-            for q in range(round(generated_obj_total/generated_obj_with_same_prefix)):
+            #for q in tqdm(range(round(generated_obj_total/generated_obj_with_same_prefix))):
+            for q in range(round(generated_obj_total / generated_obj_with_same_prefix)):
 
+                print()
+                print("q="+str(q))
                 obj_index = random.randint(0, len(testset_object_gt_maxlen_list) - 1)
                 generated_obj_counter = 0
                 generated_obj_len = 0
@@ -491,6 +496,7 @@ class FileFormatFuzzer(object):
                         # Attach '\nendobj\n' manually, and reset obj_prefix
                         generated += '\nendobj\n'
                         generated_obj_counter += 1
+                        print("generated_obj_counter="+str(generated_obj_counter))
                         generated_obj_len = 0
                         endobj_attach_manually = True
 
@@ -621,6 +627,7 @@ def main(argv):
               # trained_model_name='model_7-1'
               # )
     # fff.get_model_summary()
+    print("fff init")
     list_of_obj = fff.load_model_and_generate()
     print('Len list_of_obj', len(list_of_obj))
     dt = datetime.datetime.now().strftime('_%Y_%m_%d__%H_%M_%S_')
